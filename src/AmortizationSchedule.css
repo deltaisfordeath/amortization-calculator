@@ -1,0 +1,13 @@
+label > * {
+    margin-left: 5px;
+}
+
+.amortization-schedule {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+td {
+    width: 120px;
+}
