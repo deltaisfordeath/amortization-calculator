@@ -1,12 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import './AmortizationSchedule.css'
+import './AmortizationSchedule.css';
 
 type PaymentItem = {
     number: number,
     interest: number,
     principal: number,
-    balance: number
-}
+    balance: number;
+};
 
 export default function AmortizationSchedule() {
     const [principal, setPrincipal] = useState(null);
@@ -14,65 +14,119 @@ export default function AmortizationSchedule() {
     const [periods, setPeriods] = useState(null);
 
     const monthlyPayment = useMemo(() => {
-        if (!principal || !interest || !periods) return null;
-        const rate = interest / 1200;
-        const payments = periods * 12;
-        const loanAmount = principal;
+        if (principal > 0 && interest > 0 && periods > 0) {
+            const rate = interest / 1200;
+            const payments = periods * 12;
+            const loanAmount = principal;
 
-        const compoundFactor = Math.pow(1 + (rate), payments);
-        const monthly = (loanAmount * compoundFactor * (rate)) / (compoundFactor - 1);
+            const compoundFactor = Math.pow(1 + (rate), payments);
+            const monthly = (loanAmount * compoundFactor * (rate)) / (compoundFactor - 1);
 
-        return monthly;
+            return monthly;
+        }
 
-    }, [principal, interest, periods])
+        return null;
+
+    }, [principal, interest, periods]);
 
 
     function AmortizationTable() {
         const payments: PaymentItem[] = [];
         let balance = principal;
         let paymentNumber = 1;
+        let totalInterest = 0;
 
         while (paymentNumber <= periods * 12) {
             const interestPaid = (interest / 1200) * balance;
+            totalInterest += interestPaid;
             const principalPaid = monthlyPayment - interestPaid;
             balance -= principalPaid;
-            payments.push({number: paymentNumber, interest: interestPaid, principal: principalPaid, balance});
+            payments.push({ number: paymentNumber, interest: interestPaid, principal: principalPaid, balance });
             paymentNumber++;
         }
 
-        return <table>
-            <tr style={{fontWeight: 'bold', borderBottom: '1px solid black', marginBottom: '1px'}}>
-                <td>Payment #</td>
-                <td>Interest</td>
-                <td>Principal</td>
-                <td>Remaining Balance</td>
-            </tr>
-            {payments.map(pmt => {
-                return <tr>
-                    <td>{pmt.number}</td>
-                    <td>{(pmt.interest).toFixed(2)}</td>
-                    <td>{(pmt.principal).toFixed(2)}</td>
-                    <td>{(pmt.balance).toFixed(2)}</td>
-                </tr>
-                
-            })}
-        </table>;
+        return <>
+            <div className="loan-cost-container">
+                {!!monthlyPayment &&
+                    <div className="loan-cost-information">Monthly payment:&nbsp;
+                        <span className="red-text">$
+                            {
+                                (monthlyPayment).toLocaleString('en', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                })}
+                        </span>
+                    </div>
+                }
+
+                {!!totalInterest &&
+                    <div className="loan-cost-information">Total loan interest:&nbsp;
+                        <span className="red-text">$
+                            {
+                                (totalInterest).toLocaleString('en', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                })}
+                        </span>
+                    </div>
+                }
+            </div>
+            <div className='amortization-payment-container'>
+                <table>
+                    <thead>
+                        <tr>
+                            <td>Payment</td>
+                            <td>Interest</td>
+                            <td>Principal</td>
+                            <td>Balance</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {payments.map((pmt, idx) => {
+                            return <tr key={idx} className={`payment-row ${idx % 2 === 0 ? '' : 'gray-background'}`}>
+                                <td>{pmt.number}</td>
+                                <td>${(pmt.interest).toLocaleString('en', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                })}</td>
+                                <td>${(pmt.principal).toLocaleString('en', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                })}</td>
+                                <td>${(Math.abs(pmt.balance)).toLocaleString('en', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                })}</td>
+                            </tr>;
+
+                        })}
+                    </tbody>
+                </table>
+            </div>
+        </>;
+
     }
 
     return (<div className="amortization-schedule">
-        <label htmlFor="principal">Loan amount:
-            <input id="principal" type="number" placeholder='Enter principal amount' value={principal} onChange={(e => setPrincipal(e.target.value))} />
-        </label>
-        <label htmlFor="interest">Interest rate:
-            <input id="interest" type="number" placeholder='Enter interest rate' value={interest} onChange={(e => setInterest(e.target.value))} />
-        </label>
-        <label htmlFor="periods">Loan duration:
-            <input id="periods" type="number" placeholder='Enter loan duration in years' value={periods} onChange={(e => setPeriods(e.target.value))} />
-        </label>
+        <div className="amortization-schedule-header">
+            <div className="loan-terms-container">
+                <div className="loan-term-input">
+                    <div className="loan-input-label">Principal: </div>
+                    <input id="principal" type="number" step="1000" placeholder='$0' value={principal ?? ''} onChange={(e => setPrincipal(e.target.value))} />
+                </div>
+                <div className="loan-term-input">
+                    <div className="loan-input-label">Interest: </div>
+                    <input id="interest" type="number" step="0.01" placeholder='0.00%' value={interest ?? ''} onChange={(e => setInterest(e.target.value))} />
+                </div>
+                <div className="loan-term-input">
+                    <div className="loan-input-label">Term: </div>
+                    <input id="periods" type="number" placeholder='0 Years' value={periods ?? ''} onChange={(e => setPeriods(e.target.value))} />
+                </div>
+            </div>
 
-        {monthlyPayment && <div className="monthly-payment">Monthly payment: {(monthlyPayment).toFixed(2)}</div>}
+        </div>
 
-        {monthlyPayment && <AmortizationTable />}
+        {!!monthlyPayment && <AmortizationTable />}
     </div>
-    )
+    );
 }
